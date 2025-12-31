@@ -55,6 +55,8 @@ app.use(
   vouchersRoute
 );
 
+
+
 app.use("/orders", requireAuth, ordersRoutes);
 
 app.use("/bill", billsRoute);
@@ -72,8 +74,8 @@ app.use("/uploads", express.static("uploads"));
 app.use("/api/users", usersRoute);
 app.use("/dashboard", dashboardRoutes);
 app.use("/api/reports", reportsRoutes);
-app.use("/", inventoryRoutes);
-app.use("/", stockSummaryRoutes);
+//app.use("/inventory", inventoryRoutes);
+//app.use("/stock-summary", stockSummaryRoutes);
 
 // Test route
 app.get("/", (req, res) => {
