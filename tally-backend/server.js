@@ -82,13 +82,21 @@ app.get("/", (req, res) => {
   res.send("Backend working!");
 });
 
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    uptime: process.uptime(),
+    timestamp: new Date()
+  });
+});
+
 // DB test
 app.get("/check-db", async (req, res) => {
   try {
     const result = await pool.query("SELECT NOW()");
     res.json({ success: true, time: result.rows[0] });
   } catch (err) {
-    res.json({ success: false, error: err.message });
+res.status(500).json({ success: false, error: err.message });
   }
 });
 
