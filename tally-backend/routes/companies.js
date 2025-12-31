@@ -9,28 +9,16 @@ const router = express.Router();
 ------------------------ */
 
 // Get active company
-// Get active company (SAFE for fresh DB)
 router.get("/active", async (req, res) => {
-  try {
-    const result = await pool.query(
-      "SELECT company_guid FROM active_company WHERE id = 1"
-    );
+  const result = await pool.query(
+    "SELECT company_guid FROM active_company WHERE id = 1"
+  );
 
-    return res.json({
-      success: true,
-      company_guid: result.rows[0]?.company_guid || null,
-    });
-  } catch (err) {
-    // IMPORTANT: never crash agent on fresh DB
-    console.error("❌ /company/active error:", err.message);
-
-    return res.json({
-      success: true,
-      company_guid: null,
-    });
-  }
+  res.json({
+    success: true,
+    company_guid: result.rows[0]?.company_guid || null,
+  });
 });
-
 
 // Create / upsert company (AGENT)
 router.post("/create", async (req, res) => {
