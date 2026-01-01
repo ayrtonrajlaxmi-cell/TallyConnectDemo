@@ -3,6 +3,7 @@ import axios from "axios";
 import { Plus, Search, Download } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { API_URL } from "../config/api";
 
 interface Order {
   id: string;
@@ -83,7 +84,8 @@ export function OrderBook({
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const res = await axios.get("http://localhost:4000/orders", {
+        const res = await axios.get(`${API_URL}/orders`, {
+
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },

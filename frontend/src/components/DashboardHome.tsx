@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import { API_URL } from "../config/api";
 
 
 import {
@@ -150,7 +151,7 @@ useEffect(() => {
     try {
       // 1️⃣ Get active company
       const companyRes = await axios.get(
-        "http://localhost:4000/company/active"
+  `${API_URL}/company/active`,
       );
 
       if (!companyRes.data?.company_guid) {
@@ -164,7 +165,8 @@ useEffect(() => {
 
       // 2️⃣ Fetch ledgers for that company
       const ledgerRes = await axios.get(
-  "http://localhost:4000/ledger",
+  `${API_URL}/ledger`
+,
   {
     params: { company_guid: companyGuid },
     headers: {

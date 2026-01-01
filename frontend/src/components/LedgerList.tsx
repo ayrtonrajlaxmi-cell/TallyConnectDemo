@@ -4,6 +4,7 @@ import axios from "axios";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { useMemo } from "react";
+import { API_URL } from "../config/api";
 
 interface Ledger {
   ledger_guid: string;
@@ -30,7 +31,7 @@ interface LedgerListProps {
 }
 
 
-axios.get("http://localhost:4000/ledger", {
+axios.get(`${API_URL}/ledger`, {
   headers: {
     Authorization: `Bearer ${localStorage.getItem("token")}`,
   },
@@ -91,7 +92,7 @@ const columns =
     const fetchLedgers = async () => {
       try {
         setLoading(true);
-const response = await axios.get("http://localhost:4000/ledger", {
+const response = await axios.get("${API_URL}/ledger", {
   headers: {
     Authorization: `Bearer ${localStorage.getItem("token")}`,
   },

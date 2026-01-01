@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { API_URL } from "../config/api";
+
 import {
   Search,
   Bell,
@@ -51,7 +53,7 @@ useEffect(() => {
     try {
 const token = localStorage.getItem("token");
 
-const res = await axios.get("http://localhost:4000/company", {
+const res = await axios.get(`${API_URL}/company`, {
   headers: {
     Authorization: `Bearer ${token}`,
   },
@@ -156,7 +158,7 @@ useEffect(() => {
                 const token = localStorage.getItem("token");
 
                 await axios.post(
-                  "http://localhost:4000/company/set-active",
+  `${API_URL}/company/set-active`,
                   { company_guid: c.company_guid },
                   {
                     headers: {
@@ -165,7 +167,7 @@ useEffect(() => {
                   }
                 );
 // 🔥 ADD THIS
-await axios.post("http://localhost:4000/agent/force-sync");
+await axios.post(`${API_URL}/agent/force-sync`);
                 setActiveCompany(c.name);
                 setShowCompanies(false);
 

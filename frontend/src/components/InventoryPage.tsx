@@ -3,6 +3,7 @@ import axios from "axios";
 import { Plus, Search, Edit, AlertTriangle } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { API_URL } from "../config/api";
 
 export function InventoryPage({
   user,
@@ -65,7 +66,7 @@ if (user.role !== "ADMIN" && user?.inventoryPermissions?.can_view === false) {
 
   useEffect(() => {
     axios
-      .get("http://localhost:4000/inventory")
+axios.get(`${API_URL}/inventory`)
       .then((res) => {
         setInventory(res.data);
       })

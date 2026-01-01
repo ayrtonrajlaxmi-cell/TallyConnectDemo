@@ -11,6 +11,9 @@ import { InventoryPage } from "./InventoryPage";
 import { SettingsPage } from "./SettingsPage";
 import { AdminDashboard } from "./admin/AdminDashboard";
 
+import { API_URL } from "../config/api";
+
+
 
 export type PageType =
   | "dashboard"
@@ -68,7 +71,7 @@ const [user, setUser] = useState(initialUser);
 const refreshCurrentUser = async () => {
   try {
     // DashboardLayout.tsx
-const res = await fetch("http://localhost:4000/users/me", {
+const res = await fetch(`${API_URL}/users/me`, {
   headers: {
     Authorization: `Bearer ${localStorage.getItem("token")}`,
   },

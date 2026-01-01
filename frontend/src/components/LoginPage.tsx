@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Building2, Lock, User, Mail } from 'lucide-react';
+import { API_URL } from "../config/api";
 
 interface LoginPageProps {
   onLogin: (data: { user: any }) => void;
@@ -23,7 +24,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     isAdmin: boolean
   ) => {
     try {
-      const res = await fetch("http://localhost:4000/auth/register", {
+      const res = await fetch(`${API_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, email, password, isAdmin }),
@@ -45,7 +46,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   // ----------------------
   const loginUser = async (username: string, password: string) => {
     try {
-      const res = await fetch("http://localhost:4000/auth/login", {
+      const res = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

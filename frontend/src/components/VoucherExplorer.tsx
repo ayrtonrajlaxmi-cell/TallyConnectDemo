@@ -66,7 +66,7 @@ useEffect(() => {
     try {
       setLoading(true);
 
-      const response = await axios.get("${API_URL}/voucher-entry", {
+const response = await axios.get(`${API_URL}/voucher-entry`, {
   headers: {
     Authorization: `Bearer ${localStorage.getItem("token")}`,
   },
