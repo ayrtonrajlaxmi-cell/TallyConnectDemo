@@ -1,34 +1,29 @@
 import pkg from "pg";
-import dotenv from "dotenv";
-import path from "path";
-import { fileURLToPath } from "url";
-
 const { Pool } = pkg;
 
-// Resolve __dirname (ESM safe)
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+let pool;
 
-// Load env explicitly
-dotenv.config({
-  path: path.join(__dirname, ".env")
-});
+if (process.env.DATABASE_URL) {
+  // ✅ Render / Production
+  pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false,
+    },
+  });
 
-// 🔍 TEMP LOG (remove later)
-console.log("DB CONFIG:", {
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  port: process.env.DB_PORT,
-  passwordExists: !!process.env.DB_PASS
-});
+  console.log("✅ Using DATABASE_URL (Render / Production)");
+} else {
+  // ✅ Local development fallback
+  pool = new Pool({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT || 5432,
+  });
 
-const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: String(process.env.DB_PASS), // ✅ FORCE STRING
-  port: Number(process.env.DB_PORT)
-});
+  console.log("✅ Using DB_* variables (Local)");
+}
 
 export default pool;
