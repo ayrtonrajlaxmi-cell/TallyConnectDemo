@@ -61,12 +61,57 @@ app.use("/orders", requireAuth, ordersRoutes);
 
 app.use("/bill", billsRoute);
 app.use("/ageing", ageingRoute);
-app.use("/sales-order", salesOrderRoutes);
+//app.use("/sales-order", salesOrderRoutes);
+app.use(
+  "/sales-order",
+  (req, res, next) => {
+    if (req.path === "/sync") return next();
+    requireAuth(req, res, next);
+  },
+  salesOrderRoutes
+);
+
 app.use("/sales-order-item", salesOrderItemRoutes);
-app.use("/stock-item", stockItemRoutes);
-app.use("/stock-summary", stockSummaryRoutes);
-app.use("/invoice", invoiceRoutes);
-app.use("/invoice-item", invoiceItemRoutes);
+//app.use("/stock-item", stockItemRoutes);
+app.use(
+  "/stock-item",
+  (req, res, next) => {
+    if (req.path === "/sync") return next();
+    requireAuth(req, res, next);
+  },
+  stockItemRoutes
+);
+
+//app.use("/stock-summary", stockSummaryRoutes);
+app.use(
+  "/stock-summary",
+  (req, res, next) => {
+    if (req.path === "/sync") return next();
+    requireAuth(req, res, next);
+  },
+  stockSummaryRoutes
+);
+
+//app.use("/invoice", invoiceRoutes);
+app.use(
+  "/invoice",
+  (req, res, next) => {
+    if (req.path === "/sync" || req.path === "/bulk-sync") return next();
+    requireAuth(req, res, next);
+  },
+  invoiceRoutes
+);
+
+//app.use("/invoice-item", invoiceItemRoutes);
+app.use(
+  "/invoice-item",
+  (req, res, next) => {
+    if (req.path === "/sync" || req.path === "/bulk-sync") return next();
+    requireAuth(req, res, next);
+  },
+  invoiceItemRoutes
+);
+
 app.use("/sync", syncRoutes);
 app.use("/inventory", inventoryRoutes);
 app.use("/users", usersRoute);
