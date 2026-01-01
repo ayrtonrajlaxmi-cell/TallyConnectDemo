@@ -10,6 +10,7 @@ import {
   Ticket,
   Building2,
 } from "lucide-react";
+import { API_URL } from "../../config/api";
 
 import { OrderBookPermissions } from "./permissions/OrderBookPermissions";
 import { VoucherPermissions } from "./permissions/VoucherPermissions";
@@ -98,7 +99,7 @@ export function AdminDashboard({
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch("http://localhost:4000/users", {
+      const res = await fetch(`${API_URL}/users`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -143,7 +144,7 @@ export function AdminDashboard({
     if (!confirmDelete) return;
 
     try {
-      const res = await fetch(`http://localhost:4000/users/${userId}`, {
+      const res = await fetch(`${API_URL}/users/${userId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -169,7 +170,7 @@ export function AdminDashboard({
     password: string;
   }) => {
     try {
-      const res = await fetch("http://localhost:4000/users", {
+      const res = await fetch(`${API_URL}/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

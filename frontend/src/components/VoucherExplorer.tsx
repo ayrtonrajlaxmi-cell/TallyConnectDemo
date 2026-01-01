@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Edit, Trash2, Search } from "lucide-react";
 import axios from "axios";
+import { API_URL } from "../config/api";
 
 
 interface Voucher {
@@ -65,7 +66,7 @@ useEffect(() => {
     try {
       setLoading(true);
 
-      const response = await axios.get("http://localhost:4000/voucher-entry", {
+      const response = await axios.get("${API_URL}/voucher-entry", {
   headers: {
     Authorization: `Bearer ${localStorage.getItem("token")}`,
   },

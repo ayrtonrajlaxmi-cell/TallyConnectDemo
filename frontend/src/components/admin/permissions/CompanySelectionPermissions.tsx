@@ -1,5 +1,6 @@
 // CompanySelectionPermissions.tsx
 import { useState, useEffect } from "react";
+import { API_URL } from "../../../config/api";
 
 interface CompanySelectionPermissionsProps {
   user: any; // User object
@@ -20,7 +21,7 @@ export function CompanySelectionPermissions({
  useEffect(() => {
   const fetchCompanies = async () => {
     try {
-      const res = await fetch("http://localhost:4000/company", { // <-- updated URL
+const res = await fetch(`${API_URL}/company`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },

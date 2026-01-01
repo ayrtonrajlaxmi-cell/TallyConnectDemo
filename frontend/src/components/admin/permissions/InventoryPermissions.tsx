@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Save, AlertTriangle } from "lucide-react";
+import { API_URL } from "../../../config/api";
 
 const ALL_COLUMNS = {
   itemCode: true,
@@ -53,7 +54,7 @@ export function InventoryPermissions({
   const confirmSave = async () => {
     try {
       const res = await fetch(
-        `http://localhost:4000/users/${user.id}/inventory-permissions`,
+        `${API_URL}/users/${user.id}/inventory-permissions`,
         {
           method: "PUT",
           headers: {

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Save, AlertTriangle } from "lucide-react";
+import { API_URL } from "../../../config/api";
+
 
 export function DashboardPermissions({ value, user, onDone }: any) {
   const [local, setLocal] = useState({
@@ -26,7 +28,7 @@ export function DashboardPermissions({ value, user, onDone }: any) {
 
   const confirmSave = async () => {
     await fetch(
-      `http://localhost:4000/users/${user.id}/dashboard-permissions`,
+      `${API_URL}/users/${user.id}/dashboard-permissions`,
       {
         method: "PUT",
         headers: {

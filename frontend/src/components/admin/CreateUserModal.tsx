@@ -1,5 +1,6 @@
 import { X, Save, UserPlus, Mail, Building2, User, Shield } from "lucide-react";
 import { useState } from "react";
+import { API_URL } from "../../config/api";
 
 interface Props {
   onClose: () => void;
@@ -35,7 +36,7 @@ export function CreateUserModal({ onClose, onCreate }: Props) {
     password: string;
   }) => {
     try {
-      const res = await fetch("http://localhost:4000/users", {
+      const res = await fetch(`${API_URL}/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
