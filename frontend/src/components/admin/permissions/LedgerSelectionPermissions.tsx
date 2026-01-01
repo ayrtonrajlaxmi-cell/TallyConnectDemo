@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { API_URL } from "../../../config/api";
 
 export function LedgerSelectionPermissions({
   user,
@@ -17,7 +18,7 @@ export function LedgerSelectionPermissions({
   /* 🔹 LOAD ALL LEDGERS AS ADMIN */
   useEffect(() => {
     const fetchLedgers = async () => {
-      const res = await axios.get("http://localhost:4000/ledger", {
+const res = await axios.get(`${API_URL}/ledger`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -47,7 +48,7 @@ export function LedgerSelectionPermissions({
 
   /* 🔹 SAVE */
   const save = async () => {
-    await fetch("http://localhost:4000/ledger/user-ledgers", {
+await fetch(`${API_URL}/ledger/user-ledgers`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -64,7 +65,7 @@ export function LedgerSelectionPermissions({
   useEffect(() => {
     const fetchUserLedgers = async () => {
       const res = await fetch(
-        `http://localhost:4000/users/${user.id}/ledgers`,
+        `${API_URL}/users/${user.id}/ledgers`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,

@@ -92,7 +92,7 @@ const columns =
     const fetchLedgers = async () => {
       try {
         setLoading(true);
-const response = await axios.get("${API_URL}/ledger", {
+const response = await axios.get(`${API_URL}/ledger`, {
   headers: {
     Authorization: `Bearer ${localStorage.getItem("token")}`,
   },
