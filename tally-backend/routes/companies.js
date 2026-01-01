@@ -36,6 +36,40 @@ router.post("/create", async (req, res) => {
   res.json({ success: true, data: result.rows[0] });
 });
 
+
+// AUTO set active company (Agent only – no auth)
+router.post("/auto-set-active", async (req, res) => {
+  const { company_guid } = req.body;
+
+  if (!company_guid) {
+    return res.status(400).json({
+      success: false,
+      message: "company_guid required",
+    });
+  }
+
+  await pool.query(
+    `
+    INSERT INTO active_company (id, company_guid)
+    VALUES (1, $1)
+    ON CONFLICT (id)
+    DO UPDATE SET
+      company_guid = EXCLUDED.company_guid,
+      updated_at = NOW()
+    `,
+    [company_guid]
+  );
+
+  // trigger agent sync immediately
+  global.FORCE_SYNC = true;
+
+  res.json({
+    success: true,
+    message: "Active company auto-set",
+    company_guid,
+  });
+});
+
 /* -----------------------
    AUTH REQUIRED BELOW
 ------------------------ */
