@@ -49,16 +49,11 @@ return next(); // TEMP: allow agent
 app.use(
   "/voucher-entry",
   (req, res, next) => {
-    if (
-      req.path === "/sync" ||
-      req.path === "/mark-inactive" ||
-      req.path === "/bulk-sync"   // 🔥 THIS WAS MISSING
-    ) return next();
+    if (req.path === "/sync" || req.path === "/mark-inactive") return next();
     requireAuth(req, res, next);
   },
   vouchersRoute
 );
-
 
 
 
