@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const axios = require("axios");
 const xml2js = require("xml2js");
 const { parseStringPromise } = require("xml2js");
@@ -12,6 +14,8 @@ const STATE_FILE = path.join(
   process.cwd(),
   "agent-sync-state.json"
 );
+
+
 
 function loadState() {
   if (!fs.existsSync(STATE_FILE)) {
@@ -32,7 +36,7 @@ let IS_SYNC_RUNNING = false;
 
 
 // BACKEND URL
-const BACKEND_URL = "http://localhost:4000";
+const BACKEND_URL = "https://tallyconnectdemo.onrender.com";
 
 // Tally URL
 const TALLY_URL = "http://localhost:9000";
@@ -67,10 +71,21 @@ async function syncAllData() {
 
     await syncCompanies();
     await syncLedgers();
-    await syncVouchers();
-    await syncStockMasters();
-    await syncBills();
-    await fetchStockSummary();
+
+    try { await syncVouchers(); }
+catch (e) { console.error("Voucher sync failed", e.response?.data || e.message); }
+
+try { await syncStockMasters(); }
+catch (e) { console.error("Stock master failed", e.response?.data || e.message); }
+
+try { await syncBills(); }
+catch (e) { console.error("Bills failed", e.response?.data || e.message); }
+
+try { await fetchStockSummary(); }
+catch (e) { console.error("Stock summary failed", e.response?.data || e.message); }
+
+
+
 
     console.log("✅ Sync complete");
   } catch (err) {
@@ -85,16 +100,80 @@ function shouldStopSync() {
   return !ACTIVE_COMPANY_GUID;
 }
 
+async function detectCompanyFromTally() {
+  const xmlRequest = `
+<ENVELOPE>
+ <HEADER>
+  <VERSION>1</VERSION>
+  <TALLYREQUEST>Export Data</TALLYREQUEST>
+  <TYPE>Collection</TYPE>
+  <ID>Company Collection</ID>
+ </HEADER>
+ <BODY>
+  <DESC>
+   <STATICVARIABLES>
+    <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
+   </STATICVARIABLES>
+   <TDL>
+    <TDLMESSAGE>
+     <COLLECTION NAME="Company Collection">
+      <TYPE>Company</TYPE>
+      <FETCH>GUID</FETCH>
+     </COLLECTION>
+    </TDLMESSAGE>
+   </TDL>
+  </DESC>
+ </BODY>
+</ENVELOPE>
+`;
+
+  const res = await axios.post(TALLY_URL, xmlRequest, {
+    headers: { "Content-Type": "text/xml" },
+  });
+
+  const parsed = await parseStringPromise(res.data);
+
+  const companies =
+    parsed?.ENVELOPE?.BODY?.[0]?.DATA?.[0]?.COLLECTION?.[0]?.COMPANY || [];
+
+  if (!companies.length) return null;
+
+  const guid =
+    typeof companies[0].GUID?.[0] === "string"
+      ? companies[0].GUID[0]
+      : companies[0].GUID?.[0]?._;
+
+  return guid;
+}
 
 
 async function loadActiveCompany() {
   try {
     const res = await axios.get(`${BACKEND_URL}/company/active`);
 
-    if (!res.data?.company_guid) {
-      ACTIVE_COMPANY_GUID = null;
-      return;
-    }
+  if (!res.data?.company_guid) {
+  console.log("⚠️ No active company set. Auto-detecting from Tally...");
+
+  const detectedGuid = await detectCompanyFromTally();
+
+  if (!detectedGuid) {
+    console.log("❌ No company found in Tally");
+    ACTIVE_COMPANY_GUID = null;
+    return;
+  }
+
+  // Tell backend to set active company
+  await axios.post(`${BACKEND_URL}/company/auto-set-active`, {
+    company_guid: detectedGuid,
+  });
+
+  ACTIVE_COMPANY_GUID = detectedGuid;
+  LAST_COMPANY_GUID = detectedGuid;
+
+  console.log("✅ Active company auto-set:", detectedGuid);
+  return;
+}
+
 
     const newGuid = res.data.company_guid;
 
@@ -180,7 +259,7 @@ async function syncCompanies() {
   console.log("Companies from Tally:", companies.length);
 
   for (let c of companies) {
-    await axios.post("http://localhost:4000/company/create", {
+await axios.post(`${BACKEND_URL}/company/create`, {
   company_guid:
     typeof c.GUID?.[0] === "string" ? c.GUID?.[0] : c.GUID?.[0]?._,
   name:
@@ -311,52 +390,31 @@ const BATCH_SIZE = 500;
    3. SYNC VOUCHERS
 --------------------------- */
 
-
 async function syncVouchers() {
-const invoiceItemBatch = [];
-
-const invoiceBatch = [];
-
   if (!ACTIVE_COMPANY_GUID) {
     console.log("⚠️ No active company. Skipping vouchers.");
     return;
   }
-    const voucherEntryBatch = [];
-    const activeVoucherGuids = [];
 
+  const voucherEntryBatch = [];
+  const activeVoucherGuids = [];
 
   const xmlRequest = `
 <ENVELOPE>
  <HEADER>
   <TALLYREQUEST>Export Data</TALLYREQUEST>
-  <TYPE>Collection</TYPE>
-  <ID>Voucher Collection</ID>
  </HEADER>
  <BODY>
-  <DESC>
-   <STATICVARIABLES>
-    <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
-    <SVFROMDATE>20240101</SVFROMDATE>
-    <SVTODATE>20251231</SVTODATE>
-   </STATICVARIABLES>
-   <TDL>
-    <TDLMESSAGE>
-     <COLLECTION NAME="Voucher Collection">
-      <TYPE>Voucher</TYPE>
-      <FETCH>
-        GUID,
-        ALTERID,
-        DATE,
-        VOUCHERNUMBER,
-        VOUCHERTYPENAME,
-        PARTYLEDGERNAME,
-        ALLLEDGERENTRIES.LIST,
-        INVENTORYENTRIES.LIST
-      </FETCH>
-     </COLLECTION>
-    </TDLMESSAGE>
-   </TDL>
-  </DESC>
+  <EXPORTDATA>
+   <REQUESTDESC>
+    <REPORTNAME>Day Book</REPORTNAME>
+    <STATICVARIABLES>
+     <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
+     <SVFROMDATE>20240101</SVFROMDATE>
+     <SVTODATE>20251231</SVTODATE>
+    </STATICVARIABLES>
+   </REQUESTDESC>
+  </EXPORTDATA>
  </BODY>
 </ENVELOPE>
 `;
@@ -364,8 +422,6 @@ const invoiceBatch = [];
   const res = await axios.post(TALLY_URL, xmlRequest, {
     headers: { "Content-Type": "text/xml" },
   });
-
-  console.log("RAW DAYBOOK XML:\n", res.data);
 
   const parsed = await parseStringPromise(res.data);
 
@@ -379,327 +435,62 @@ const invoiceBatch = [];
 
   console.log("TALLYMESSAGE count:", msgArray.length);
 
-  let voucherCount = 0;
-// const activeVoucherGuids = new Set();
-for (const msg of msgArray) {
-  if (shouldStopSync()) {
-    console.log("🛑 Company changed, stopping voucher sync");
-    return;
-  }
+  for (const msg of msgArray) {
+    if (!msg.VOUCHER) continue;
 
-  if (!msg.VOUCHER) continue;
+    const v = msg.VOUCHER[0];
 
-  const v = msg.VOUCHER[0];
-  voucherCount++;
+    const voucherGuid = v.GUID?.[0] || v.GUID?._;
+    if (!voucherGuid) continue;
 
-    // 🔹 Voucher GUID
-const voucherGuid =
-  typeof v.GUID?.[0] === "string" ? v.GUID[0] : v.GUID?.[0]?._;
+    activeVoucherGuids.push(voucherGuid);
 
-activeVoucherGuids.push(voucherGuid);
+    const voucherDate = v.DATE?.[0] || null;
+    const voucherType =
+      v.VOUCHERTYPENAME?.[0] || v.VOUCHERTYPE?.[0] || null;
 
-// 🔹 Voucher Date
-const voucherDate =
-  v.DATE?.[0] ||
-  v.REFERENCEDATE?.[0] ||
-  null;
-
-// 🔹 Voucher Type (⭐ MUST COME FIRST)
-const voucherType =
-  v.VOUCHERTYPENAME?.[0] ||
-  v.VOUCHERTYPE?.[0] ||
-  null;
-
-
-     if (voucherCount <= 3) {
-    console.log("🔎 FULL VOUCHER OBJECT:", JSON.stringify(v, null, 2));
-  }
-
-
-  const isPurchaseInvoice =
-  voucherType &&
-  voucherType.toLowerCase().includes("purchase");
-console.log("📘 Voucher Type:", voucherType);
-
-
-if (isPurchaseInvoice) {
-  const invoiceGuid =
-    typeof v.GUID?.[0] === "string" ? v.GUID[0] : v.GUID?.[0]?._;
-
-  const invoiceDate = v.DATE?.[0] || null;
-  const invoiceNo = v.VOUCHERNUMBER?.[0] || null;
-  const partyName = v.PARTYLEDGERNAME?.[0] || null;
-
-  const ledgerEntries = v["ALLLEDGERENTRIES.LIST"] || [];
-  const entryArray = Array.isArray(ledgerEntries)
-    ? ledgerEntries
-    : [ledgerEntries];
-
-  let totalAmount = 0;
-
-  for (const e of entryArray) {
-    totalAmount += Math.abs(Number(e.AMOUNT?.[0] || 0));
-  }
-
-  // 🔹 Save Purchase Invoice Header
-  await axios.post(`${BACKEND_URL}/invoice/sync`, {
-    invoice_guid: invoiceGuid,
-    company_guid: ACTIVE_COMPANY_GUID,
-    invoice_no: invoiceNo,
-    invoice_date: invoiceDate,
-    invoice_type: "Purchase",
-    party_name: partyName,
-    total_amount: totalAmount,
-  });
-
-  // 🔥 CREATE SALES ORDER FROM SALES INVOICE
-
-invoiceBatch.push({
-  invoice_guid: invoiceGuid,
-  company_guid: ACTIVE_COMPANY_GUID,
-  invoice_no: invoiceNo,
-  invoice_date: invoiceDate,
-  invoice_type: "Purchase",
-  party_name: partyName,
-  total_amount: totalAmount,
-});
-if (invoiceBatch.length >= BATCH_SIZE) {
-  await axios.post(
-    `${BACKEND_URL}/invoice/bulk-sync`,
-    invoiceBatch
-  );
-  invoiceBatch.length = 0;
-}
-
-
-  // 🔹 Save Line Items
-const purchaseItems = v["INVENTORYENTRIES.LIST"] || [];
-const purchaseItemArray = Array.isArray(purchaseItems)
-  ? purchaseItems
-  : [purchaseItems];
-
-
- for (const i of purchaseItemArray) {
-  await axios.post(`${BACKEND_URL}/invoice-item/sync`, {
-    invoice_guid: invoiceGuid,
-    item_name: i.STOCKITEMNAME?.[0] || i.LEDGERNAME?.[0] || null,
-quantity: parseTallyNumber(i.ACTUALQTY?.[0]),
-    rate: Number(i.RATE?.[0]?.replace(/[^0-9.-]/g, "") || 0),
-    amount: Math.abs(Number(i.AMOUNT?.[0] || 0)),
-  });
-
-  invoiceItemBatch.push({
-    invoice_guid: invoiceGuid,
-    company_guid: ACTIVE_COMPANY_GUID,
-    item_name: i.STOCKITEMNAME?.[0] || i.LEDGERNAME?.[0] || null,
-quantity: parseTallyNumber(i.ACTUALQTY?.[0]),
-    rate: Number(i.RATE?.[0]?.replace(/[^0-9.-]/g, "") || 0),
-    amount: Math.abs(Number(i.AMOUNT?.[0] || 0)),
-  });
-
-  if (invoiceItemBatch.length >= BATCH_SIZE) {
-    await axios.post(
-      `${BACKEND_URL}/invoice-item/bulk-sync`,
-      invoiceItemBatch
-    );
-    invoiceItemBatch.length = 0;
-  }
-}
-
-
-  console.log(`🧾 Purchase Invoice synced → ${invoiceNo}`);
-
-
-}
-
-
-   
-const isSalesInvoice =
-  voucherType &&
-  (
-    voucherType.toLowerCase().includes("invoice") ||
-    voucherType.toLowerCase().includes("sales")
-  );
-
-if (isSalesInvoice) {
-  const invoiceGuid =
-    typeof v.GUID?.[0] === "string" ? v.GUID[0] : v.GUID?.[0]?._;
-
-  const invoiceDate = v.DATE?.[0] || null;
-  const invoiceNo = v.VOUCHERNUMBER?.[0] || null;
-  const partyName = v.PARTYLEDGERNAME?.[0] || null;
-
-  const ledgerEntries = v["ALLLEDGERENTRIES.LIST"] || [];
-  const entryArray = Array.isArray(ledgerEntries)
-    ? ledgerEntries
-    : [ledgerEntries];
-
-  let totalAmount = 0;
-
-  for (const e of entryArray) {
-    totalAmount += Math.abs(Number(e.AMOUNT?.[0] || 0));
-  }
-
-  // 🔹 Save Invoice Header
-  await axios.post(`${BACKEND_URL}/invoice/sync`, {
-    invoice_guid: invoiceGuid,
-    company_guid: ACTIVE_COMPANY_GUID,
-    invoice_no: invoiceNo,
-    invoice_date: invoiceDate,
-    invoice_type: "Sales",
-    party_name: partyName,
-    total_amount: totalAmount,
-  });
-
-  invoiceBatch.push({
-  invoice_guid: invoiceGuid,
-  company_guid: ACTIVE_COMPANY_GUID,
-  invoice_no: invoiceNo,
-  invoice_date: invoiceDate,
-  invoice_type: "Sales",
-  party_name: partyName,
-  total_amount: totalAmount,
-});
-if (invoiceBatch.length >= BATCH_SIZE) {
-  await axios.post(
-    `${BACKEND_URL}/invoice/bulk-sync`,
-    invoiceBatch
-  );
-  invoiceBatch.length = 0;
-}
-
-   // ✅ CREATE SALES ORDER FROM SALES INVOICE
-  await axios.post(`${BACKEND_URL}/sales-order/sync`, {
-    order_guid: invoiceGuid,
-    company_guid: ACTIVE_COMPANY_GUID,
-    order_no: invoiceNo,
-    order_date: invoiceDate,
-    order_type: voucherType,
-    party_name: partyName,
-    total_amount: totalAmount,
-    status: "Pending",
-    due_date: null
-  });
-
-  console.log(`📦 Sales Order created → ${invoiceNo}`);
-
-  // 🔹 Save Invoice Line Items
-  const salesItems = v["INVENTORYENTRIES.LIST"] || [];
-const salesItemArray = Array.isArray(salesItems)
-  ? salesItems
-  : [salesItems];
-
-
-for (const i of salesItemArray) {
-  await axios.post(`${BACKEND_URL}/invoice-item/sync`, {
-    invoice_guid: invoiceGuid,
-    item_name: i.STOCKITEMNAME?.[0] || null,
-quantity: parseTallyNumber(i.ACTUALQTY?.[0]),
-    rate: Number(i.RATE?.[0]?.replace(/[^0-9.-]/g, "") || 0),
-    amount: Math.abs(Number(i.AMOUNT?.[0] || 0)),
-  });
-
-  invoiceItemBatch.push({
-    invoice_guid: invoiceGuid,
-    company_guid: ACTIVE_COMPANY_GUID,
-    item_name: i.STOCKITEMNAME?.[0] || null,
-quantity: parseTallyNumber(i.ACTUALQTY?.[0]),
-    rate: Number(i.RATE?.[0]?.replace(/[^0-9.-]/g, "") || 0),
-    amount: Math.abs(Number(i.AMOUNT?.[0] || 0)),
-  });
-
-  if (invoiceItemBatch.length >= BATCH_SIZE) {
-    await axios.post(
-      `${BACKEND_URL}/invoice-item/bulk-sync`,
-      invoiceItemBatch
-    );
-    invoiceItemBatch.length = 0;
-  }
-}
-
-
-  console.log(`🧾 Sales Invoice synced → ${invoiceNo}`);
-
-
-
-}
-
-
-const referenceNo =
-  v.REFERENCE?.[0] ||
-  v.REFERENCENUMBER?.[0] ||
-  null;
-
+    const referenceNo =
+      v.REFERENCE?.[0] ||
+      v.REFERENCENUMBER?.[0] ||
+      v.VOUCHERNUMBER?.[0] ||
+      null;
 
     const entries = v["ALLLEDGERENTRIES.LIST"] || [];
     const entryArray = Array.isArray(entries) ? entries : [entries];
-//const referenceNo = v.REFERENCE?.[0] || null;
+
     for (const e of entryArray) {
-      const isDebit = e.ISDEEMEDPOSITIVE?.[0] === "No";
-
-    voucherEntryBatch.push({
-  voucher_guid: voucherGuid,
-  company_guid: ACTIVE_COMPANY_GUID,
-  reference_no: referenceNo,
-  voucher_date: voucherDate,
-  voucher_type: voucherType,
-  ledger_name: e.LEDGERNAME?.[0],
-  amount: Math.abs(Number(e.AMOUNT?.[0] || 0)),
-  is_debit: isDebit,
-});
-if (voucherEntryBatch.length >= BATCH_SIZE) {
-  await axios.post(
-    `${BACKEND_URL}/voucher-entry/bulk-sync`,
-    voucherEntryBatch
-  );
-  voucherEntryBatch.length = 0;
-}
-
-
-
-
-      console.log(
-        `Entry synced → ${e.LEDGERNAME?.[0]} : ${isDebit ? "DR" : "CR"}`
-      );
+      voucherEntryBatch.push({
+        voucher_guid: voucherGuid,
+        company_guid: ACTIVE_COMPANY_GUID,
+        reference_no: referenceNo,
+        voucher_date: voucherDate,
+        voucher_type: voucherType,
+        ledger_name: e.LEDGERNAME?.[0],
+        amount: Math.abs(Number(e.AMOUNT?.[0] || 0)),
+        is_debit: e.ISDEEMEDPOSITIVE?.[0] === "No",
+      });
     }
   }
-// 🔴 Mark deleted vouchers as inactive
 
-
-console.log("🧹 Inactive vouchers cleaned");
-
-
-  console.log("Vouchers from Tally:", voucherCount);
-    // 🔒 Mark deleted vouchers as inactive
-  if (activeVoucherGuids.length > 0) {
-    await axios.post(
-      `${BACKEND_URL}/voucher-entry/mark-inactive`,
-      { activeVoucherGuids }
-    );
+  if (activeVoucherGuids.length) {
+    await axios.post(`${BACKEND_URL}/voucher-entry/mark-inactive`, {
+      activeVoucherGuids,
+    });
   }
 
-
-if (voucherEntryBatch.length) {
-  await axios.post(
-    `${BACKEND_URL}/voucher-entry/bulk-sync`,
-    voucherEntryBatch
-  );
+  if (voucherEntryBatch.length) {
+  for (const entry of voucherEntryBatch) {
+    await axios.post(
+      `${BACKEND_URL}/voucher-entry/sync`,
+      entry
+    );
+  }
 }
 
-if (invoiceBatch.length > 0) {
-  await axios.post(
-    `${BACKEND_URL}/invoice/bulk-sync`,
-    invoiceBatch
-  );
+console.log("✅ Voucher sync completed successfully");
 }
 
-if (invoiceItemBatch.length > 0) {
-  await axios.post(
-    `${BACKEND_URL}/invoice-item/bulk-sync`,
-    invoiceItemBatch
-  );
-}
-}
+
 
 
 
@@ -745,7 +536,29 @@ async function syncBills() {
   const parsed = await parseStringPromise(res.data);
 
   // ✅ DIRECT ENVELOPE LEVEL DATA
-  const billFixed = parsed?.ENVELOPE?.BILLFIXED?.[0];
+const billBlocks = parsed?.ENVELOPE?.BILLFIXED || [];
+const billAmounts = parsed?.ENVELOPE?.BILLCL || [];
+const billDues = parsed?.ENVELOPE?.BILLDUE || [];
+
+for (let i = 0; i < billBlocks.length; i++) {
+  const bill = billBlocks[i];
+
+  const payload = {
+    company_guid: ACTIVE_COMPANY_GUID,
+    ledger_name: bill.BILLPARTY?.[0],
+    bill_name: bill.BILLREF?.[0],
+    bill_date: bill.BILLDATE?.[0],
+    amount: Math.abs(Number(billAmounts[i] || 0)),
+    pending_amount: Math.abs(Number(billAmounts[i] || 0)),
+    due_date: billDues[i],
+  };
+
+  if (!payload.ledger_name || !payload.bill_name) continue;
+
+  await axios.post(`${BACKEND_URL}/bill/sync`, payload);
+
+  console.log(`✅ Bill synced → ${payload.ledger_name} | ${payload.bill_name}`);
+}
   const closingAmount = parsed?.ENVELOPE?.BILLCL?.[0];
   const dueDate = parsed?.ENVELOPE?.BILLDUE?.[0];
 
