@@ -40,7 +40,7 @@ app.use("/company", companiesRoute);
 app.use(
   "/ledger",
   (req, res, next) => {
-return next(); // TEMP: allow agent
+    if (req.path === "/sync") return next();
     requireAuth(req, res, next);
   },
   ledgersRoute
