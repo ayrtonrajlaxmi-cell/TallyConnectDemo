@@ -49,7 +49,11 @@ app.use(
 app.use(
   "/voucher-entry",
   (req, res, next) => {
-    if (req.path === "/sync" || req.path === "/mark-inactive") return next();
+    if (
+      req.path === "/sync" ||
+      req.path === "/mark-inactive" ||
+      req.path === "/bulk-sync"   // ✅ ADD ONLY THIS
+    ) return next();
     requireAuth(req, res, next);
   },
   vouchersRoute
