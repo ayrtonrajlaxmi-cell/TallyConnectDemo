@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Save, AlertTriangle } from "lucide-react";
+import { API_URL } from "../../../config/api";
 
 export function LedgerPermissions({ value, user, onChange, onDone }: any) {
   const [local, setLocal] = useState(value || { columns: {} });
@@ -27,7 +28,7 @@ export function LedgerPermissions({ value, user, onChange, onDone }: any) {
   /* CONFIRM SAVE */
 const confirmSave = async () => {
   await fetch(
-    `http://localhost:4000/users/${user.id}/ledger-permissions`,
+    `${API_URL}/users/${user.id}/ledger-permissions`,
     {
       method: "PUT",
       headers: {

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Download, TrendingUp, TrendingDown } from 'lucide-react';
+import { API_URL } from "../config/api";
+
 import {
   LineChart,
   Line,
@@ -38,7 +40,7 @@ export function MonthlySummary() {
       console.log('Selected year:', selectedYear);
 
       const response = await fetch(
-        `http://localhost:4000/api/reports/monthly-summary?year=${selectedYear}`
+        `${API_URL}/api/reports/monthly-summary?year=${selectedYear}`
       );
 
       if (!response.ok) {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Save, AlertTriangle } from "lucide-react";
+import { API_URL } from "../../../config/api";
 
 const ALL_COLUMNS = {
   orderNo: true,
@@ -50,7 +51,7 @@ export function OrderBookPermissions({
   const confirmSave = async () => {
     try {
       const res = await fetch(
-        `http://localhost:4000/users/${user.id}/orders-permissions`,
+        `${API_URL}/users/${user.id}/orders-permissions`,
         {
           method: "PUT",
           headers: {

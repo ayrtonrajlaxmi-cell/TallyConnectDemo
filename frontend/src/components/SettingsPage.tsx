@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { User, Building2, Bell, LogOut } from "lucide-react";
+import { API_URL } from "../config/api";
 
 interface SettingsPageProps {
   user: { username: string; company: string };
@@ -24,7 +25,7 @@ const [role, setRole] = useState<string>("");
   useEffect(() => {
   const token = localStorage.getItem("token");
 
-  fetch("http://localhost:4000/users/me", {
+  fetch("${API_URL}/users/me", {
     headers: { Authorization: `Bearer ${token}` },
   })
     .then((res) => res.json())
@@ -47,7 +48,7 @@ const [role, setRole] = useState<string>("");
     const formData = new FormData();
     formData.append("avatar", file);
 
-    const res = await fetch("http://localhost:4000/users/me/avatar", {
+    const res = await fetch("${API_URL}/users/me/avatar", {
 
       method: "POST",
       headers: {
@@ -108,7 +109,7 @@ const [role, setRole] = useState<string>("");
       company: inputs[2]?.value,
     };
 
-    await fetch("http://localhost:4000/users/me", {
+    await fetch("${API_URL}/users/me", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -124,7 +125,7 @@ const [role, setRole] = useState<string>("");
   useEffect(() => {
     const token = localStorage.getItem("token");
 
-    fetch("http://localhost:4000/users/me/notifications", {
+    fetch("${API_URL}/users/me/notifications", {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
@@ -152,7 +153,7 @@ const [role, setRole] = useState<string>("");
       preferences[cb.dataset.key] = cb.checked;
     });
 
-    await fetch("http://localhost:4000/users/me/notifications", {
+    await fetch("${API_URL}/users/me/notifications", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -235,7 +236,7 @@ const [role, setRole] = useState<string>("");
   />
 ) : avatarUrl ? (
   <img
-  src={`http://localhost:4000${avatarUrl}`}
+  src={`${API_URL}${avatarUrl}`}
   alt="Avatar"
   className="w-20 h-20 rounded-full object-cover border"
 />

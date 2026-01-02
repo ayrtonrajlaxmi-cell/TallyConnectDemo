@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Save, AlertTriangle } from "lucide-react";
+import { API_URL } from "../../../config/api";
 
 export function VoucherPermissions({
   value,
@@ -44,7 +45,7 @@ useEffect(() => {
 const confirmSave = async () => {
   try {
     const res = await fetch(
-      `http://localhost:4000/users/${user.id}/voucher-permissions`,
+      `${API_URL}/users/${user.id}/voucher-permissions`,
       {
         method: "PUT",
         headers: {

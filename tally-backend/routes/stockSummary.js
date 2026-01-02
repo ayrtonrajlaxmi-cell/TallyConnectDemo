@@ -9,7 +9,7 @@ const router = express.Router();
  * Called by agent.js
  * -----------------------------------
  */
-router.post("/stock-summary/sync", async (req, res) => {
+router.post("/sync", async (req, res) => {
   try {
     console.log("📥 stock-summary/sync HIT:", req.body);
 

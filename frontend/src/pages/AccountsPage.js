@@ -15,7 +15,7 @@ function AccountsPage({ userRole = "viewer" }) {
   // =========================
   const fetchAccounts = async () => {
     try {
-      const res = await axios.get("http://localhost:4000/ledger");
+      const res = await axios.get("${API_URL}/ledger");
       setAccounts(res.data.data || []);
     } catch (err) {
       console.error("Error fetching accounts:", err);

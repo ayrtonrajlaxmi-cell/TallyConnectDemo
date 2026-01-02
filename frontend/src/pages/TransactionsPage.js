@@ -6,7 +6,7 @@ function TransactionsPage() {
 
   const fetchTransactions = async () => {
     try {
-      const res = await axios.get("http://localhost:4000/voucher");
+      const res = await axios.get("${API_URL}/voucher");
       setTransactions(res.data.vouchers || []);
     } catch (err) {
       console.error("Error fetching transactions:", err);
